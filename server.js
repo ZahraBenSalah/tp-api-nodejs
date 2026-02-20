@@ -45,6 +45,15 @@ app.get("/", (req, res) => {
     },
   });
 });
+/// Health check endpoint
+/// zahra
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
 
 // Monter les routes des étudiants sur /api/etudiants
 app.use("/api/etudiants", require("./routes/etudiantRoutes"));
