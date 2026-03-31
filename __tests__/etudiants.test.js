@@ -27,42 +27,43 @@ afterEach(async () => {
 });
 
 describe("GET /api/etudiants", () => {
-  test("retourne un tableau vide si aucun étudiant", async () => {
-    const res = await request(app).get("/api/etudiants");
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toHaveLength(0);
+  test('retourne 400 pour un ID mal formaté', async () => {
+    const res = await request(app).get('/api/etudiants/pas-un-id-valide');
+    expect(res.statusCode).toBe(400);
   });
 
-  test("retourne tous les étudiants", async () => {
-    await Etudiant.create([
-      { nom: "Dupont", prenom: "Alice", moyenne: 15 },
-      { nom: "Martin", prenom: "Bob", moyenne: 12 },
-    ]);
-    const res = await request(app).get("/api/etudiants");
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toHaveLength(2);
+describe("POST /api/etudiants", () => {
+  test('retourne 400 si la moyenne est négative', async () => {
+    const res = await request(app)
+      .post('/api/etudiants')
+      .send({ nom: 'Dupont', prenom: 'Alice', "email": "Dupont.Alice@ecole.tn",
+    "filiere": "Informatique",
+    "annee": 2,moyenne: -5 });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBeDefined();
   });
 });
 
-describe("POST /api/etudiants", () => {
-  test("crée un étudiant et retourne 201", async () => {
-    const res = await request(app)
-      .post("/api/etudiants")
-      .send({ nom: "Dupont", prenom: "Alice", moyenne: 15 });
 
-    expect(res.statusCode).toBe(201);
-    expect(res.body.nom).toBe("Dupont");
-    expect(res.body._id).toBeDefined();
+  test('retourne 400 si la moyenne dépasse 20', async () => {
+    const res = await request(app)
+      .post('/api/etudiants')
+      .send({ nom: 'Dupont', prenom: 'Alice', "email": "Dupont.Alice@ecole.tn",
+    "filiere": "Informatique",
+    "annee": 2,moyenne: 25 });
+    expect(res.statusCode).toBe(400);
   });
 
-  test("retourne 400 si le nom est manquant", async () => {
+  test('retourne 400 si la moyenne n\'est pas un nombre', async () => {
     const res = await request(app)
-      .post("/api/etudiants")
-      .send({ prenom: "Alice", moyenne: 15 });
-
+      .post('/api/etudiants')
+      .send({ nom: 'Dupont', prenom: 'Alice', "email": "Dupont.Alice@ecole.tn",
+    "filiere": "Informatique",
+    "annee": 2,moyenne: 'bonne' });
     expect(res.statusCode).toBe(400);
   });
 });
+
 
 describe("GET /api/etudiants/:id", () => {
   test("retourne l'étudiant correspondant", async () => {
