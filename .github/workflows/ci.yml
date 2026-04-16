@@ -1,0 +1,40 @@
+name: CI - Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    # ============================================
+    # MATRIX : Tester sur plusieurs versions Node
+    # ============================================
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+      # fail-fast: false → si une version échoue,
+      # les autres continuent quand même
+      fail-fast: false
+
+    # Le nom du job inclut la version Node pour la lisibilité
+    name: Tests Node.js ${{ matrix.node-version }}
+
+    steps:
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Installer Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 📦 Installer les dépendances
+        run: npm ci
+
+      - name: 🧪 Lancer les tests
+        run: npm test
