@@ -3,24 +3,21 @@ const router = express.Router();
 
 const {
   createEtudiant,
-  getAllEtudiants,
   getEtudiantById,
+  getAllEtudiants,
   updateEtudiant,
   deleteEtudiant,
   searchEtudiants,
   getEtudiantsDesactives,
 } = require("../controllers/etudiantController");
 
-// 🔍 Recherche
 router.get("/search", searchEtudiants);
-
-// 👻 Étudiants désactivés
 router.get("/desactives", getEtudiantsDesactives);
 
-// CRUD
-router.post("/", createEtudiant);
 router.get("/", getAllEtudiants);
 router.get("/:id", getEtudiantById);
+
+router.post("/", createEtudiant);
 router.put("/:id", updateEtudiant);
 router.delete("/:id", deleteEtudiant);
 

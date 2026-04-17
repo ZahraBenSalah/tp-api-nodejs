@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Etudiant = require('../models/Etudiant');
-// etudiantController.js
+
 exports.searchEtudiants = async (req, res) => {
   try {
     const { nom } = req.query;
@@ -8,12 +8,16 @@ exports.searchEtudiants = async (req, res) => {
       return res.status(400).json({ message: "Paramètre 'nom' requis" });
     }
 
-    const resultats = await Etudiant.find({ nom: { $regex: nom, $options: "i" } });
+    const resultats = await Etudiant.find({
+      nom: { $regex: nom, $options: "i" }
+    });
+
     res.status(200).json(resultats);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 exports.createEtudiant = async (req, res) => {
   try {
     const { nom, prenom, moyenne, email } = req.body;
@@ -40,12 +44,8 @@ exports.createEtudiant = async (req, res) => {
     res.status(201).json(etudiant);
 
   } catch (error) {
-
-    // ✅ Gestion duplication email (MongoDB)
     if (error.code === 11000) {
-      return res.status(409).json({
-        message: 'Cet email est déjà utilisé'
-      });
+      return res.status(409).json({ message: 'Cet email est déjà utilisé' });
     }
 
     res.status(500).json({ message: error.message });
@@ -70,16 +70,7 @@ exports.getEtudiantById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// etudiantController.js
-exports.getEtudiantsDesactives = async (req, res) => {
-  try {
-    const desactives = await Etudiant.find({ actif: false });
-    res.status(200).json(desactives);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-// GET all
+
 exports.getAllEtudiants = async (req, res) => {
   try {
     const etudiants = await Etudiant.find();
@@ -89,22 +80,48 @@ exports.getAllEtudiants = async (req, res) => {
   }
 };
 
-// PUT update
-const updatedEtudiant = await Etudiant.findByIdAndUpdate(
-  req.params.id,
-  { $set: req.body },
-  {
-    new: true,
-    runValidators: true
+exports.getEtudiantsDesactives = async (req, res) => {
+  try {
+    const desactives = await Etudiant.find({ actif: false });
+    res.status(200).json(desactives);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-);
+};
 
-// DELETE
+exports.updateEtudiant = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'ID invalide' });
+    }
+
+    const updatedEtudiant = await Etudiant.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedEtudiant) {
+      return res.status(404).json({ message: "Étudiant non trouvé" });
+    }
+
+    res.status(200).json(updatedEtudiant);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.deleteEtudiant = async (req, res) => {
   try {
     const etudiant = await Etudiant.findByIdAndDelete(req.params.id);
-    if (!etudiant) return res.status(404).json({ message: "Étudiant non trouvé" });
+
+    if (!etudiant) {
+      return res.status(404).json({ message: "Étudiant non trouvé" });
+    }
+
     res.status(200).json({ message: "Étudiant supprimé" });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
