@@ -20,8 +20,14 @@ const etudiantSchema = new mongoose.Schema(
     },
     filiere: {
       type: String,
-      required: true,
-      enum: ["Informatique", "Génie Civil", "Électronique", "Mécanique"],
+      enum: [
+        "Informatique",
+        "Info",
+        "InfoS",
+        "Génie Civil",
+        "Électronique",
+        "Mécanique",
+      ],
     },
     annee: {
       type: Number,

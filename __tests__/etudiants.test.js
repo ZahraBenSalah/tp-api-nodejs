@@ -1,5 +1,5 @@
-const request = require("supertest");
 const mongoose = require("mongoose");
+const request = require("supertest");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 
 const app = require("../app");
@@ -13,30 +13,19 @@ jest.setTimeout(120000); // éviter timeout
 // SETUP
 // ==========================
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create({
-    binary: { version: "4.4.25" }, // plus rapide
-  });
+  mongoServer = await MongoMemoryServer.create();
 
-  const uri = mongoServer.getUri();
-
-  await mongoose.connect(uri);
-
-  await Etudiant.init();
+  await mongoose.connect(mongoServer.getUri());
 });
 
-// ==========================
-// CLEAN
-// ==========================
 afterEach(async () => {
   await Etudiant.deleteMany({});
 });
 
 afterAll(async () => {
-  await mongoose.connection.dropDatabase();
   await mongoose.connection.close();
   await mongoServer.stop();
 });
-
 // ==========================
 // TEST GET ID invalide
 // ==========================
