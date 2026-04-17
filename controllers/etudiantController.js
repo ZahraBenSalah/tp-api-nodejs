@@ -90,20 +90,14 @@ exports.getAllEtudiants = async (req, res) => {
 };
 
 // PUT update
-exports.updateEtudiant = async (req, res) => {
-  try {
-    const etudiant = await Etudiant.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-
-    if (!etudiant) return res.status(404).json({ message: "Étudiant non trouvé" });
-    res.status(200).json(etudiant);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+const updatedEtudiant = await Etudiant.findByIdAndUpdate(
+  req.params.id,
+  { $set: req.body },
+  {
+    new: true,
+    runValidators: true
   }
-};
+);
 
 // DELETE
 exports.deleteEtudiant = async (req, res) => {
