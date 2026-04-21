@@ -1,0 +1,84 @@
+name: CD - Déploiement AWS
+
+on:
+  # Se déclenche quand le workflow CI réussit sur main
+  workflow_run:
+    workflows: ["CI - Tests"]
+    types:
+      - completed
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: 🚀 Déployer sur EC2
+
+    # Seulement si le CI a réussi
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    environment:
+      name: production
+
+    steps:
+      # 1. Récupérer le code
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v4
+
+      # 2. Préparer la connexion SSH
+      - name: 🔑 Configurer la clé SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf "%s" "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      # 3. Copier les fichiers sur le serveur
+      - name: 📦 Envoyer les fichiers au serveur
+        run: |
+          rsync -avz --delete \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude '.env' \
+            --exclude 'coverage' \
+            --exclude '__tests__' \
+            --exclude 'terraform' \
+            -e "ssh -i ~/.ssh/ec2_key" \
+            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/app/
+
+      # 4. Installer les dépendances et redémarrer
+      - name: 🔄 Installer et redémarrer l'application
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 \
+            -i ~/.ssh/ec2_key \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+              cd /home/ec2-user/app
+              echo "📦 Installation des dépendances..."
+              npm install --omit=dev
+              echo "🔄 Redémarrage de l'application..."
+              pm2 delete tp-api || true
+              pm2 start ecosystem.config.js --env production
+              sleep 3
+              pm2 status
+          ENDSSH
+
+      # 5. Vérifier que l'API répond
+      - name: 🏥 Vérification de santé
+        run: |
+          echo "🔍 Vérification que l'API répond..."
+          for i in {1..10}; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              http://${{ secrets.EC2_HOST }}:3000/ || echo "000")
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 500 ]; then
+              echo "✅ API accessible ! (HTTP $HTTP_STATUS)"
+              exit 0
+            fi
+            echo "⏳ Tentative $i/10 — HTTP $HTTP_STATUS — nouvelle tentative dans 3s..."
+            sleep 3
+          done
+          echo "❌ L'API ne répond pas après 30 secondes"
+          exit 1
+
+      # 6. Nettoyer la clé SSH
+      - name: 🧹 Nettoyage
+        if: always()
+        run: rm -f ~/.ssh/ec2_key
